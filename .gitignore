@@ -4,4 +4,4 @@ __pycache__/
 .DS_Store
 dist/
 build/
-*.spec
+*.spec.idea/
