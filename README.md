@@ -1,35 +1,38 @@
 # RodentBehaviourAnalysis UI
 
-A desktop client for uploading rodent maze videos to the RodentBehaviourAnalysis backend, tracking backend processing jobs, and downloading processed result packages.
+A modern PyQt6 desktop client for securely logging into the RodentBehaviourAnalysis system, uploading rodent maze videos to the backend, monitoring processing jobs, and downloading processed result packages.
 
-The UI is designed to be a lightweight installable application for macOS and Windows. It connects to a hosted/local FastAPI backend that runs the actual ML pipeline using DeepLabCut, YOLOv8 maze/zone detection, Redis queueing, and SQLite job tracking.
+The UI is designed as a lightweight desktop application for macOS and Windows. It connects to a hosted or local FastAPI backend that runs the actual ML pipeline using DeepLabCut, YOLOv8 maze/zone detection, Redis queueing, and SQLite job tracking.
 
 ---
 
 ## Abstract
 
-Rodent behavior analysis workflows often involve large raw videos, heavy ML processing, and multiple output artifacts such as cropped videos, tracking files, segmented clips, and Excel reports. Running the full pipeline directly from a local UI can overload user machines and complicate setup.
+Rodent behavior analysis workflows often involve large raw videos, heavy ML processing, and multiple generated outputs such as cropped videos, tracking files, segment clips, metadata sheets, and Excel reports. Running the full ML pipeline directly from a user-facing desktop app can overload machines and make the setup difficult for end users.
 
-This UI separates the user-facing workflow from the ML processing workload. Users select a folder of raw videos, add selected videos to a backend queue, monitor each job, and download the processed ZIP result after completion. The backend handles processing sequentially so the ML system is not overloaded.
+This UI separates the user-facing experience from the ML workload. Users authenticate through Firebase, select a folder of raw videos, add selected videos to a backend queue, monitor each job through reusable status cards, and download ZIP result packages after processing. The backend handles the actual processing sequentially so the ML system is not overloaded.
 
 ---
 
 ## Introduction
 
-The goal of this desktop UI is to make the RodentBehaviourAnalysis pipeline easier to use for non-technical or semi-technical users.
+The goal of this desktop UI is to make the RodentBehaviourAnalysis pipeline easier to use for researchers, lab staff, and technical users who need a clean interface instead of terminal commands.
 
 Current UI workflow:
 
-1. Open the app.
-2. Connect to the backend.
-3. Browse and select a folder containing raw videos.
-4. View supported videos with checkboxes.
-5. Add selected videos to the processing queue.
-6. Monitor one reusable job card per video.
-7. Download completed result ZIP files.
-8. Re-add more videos while existing jobs are still processing.
+1. User opens the app.
+2. User logs in using Firebase Authentication.
+3. App checks the user profile in Firestore.
+4. If `mustChangePassword` is true, the user is asked to update their password before entering the app.
+5. User enters the main app.
+6. User browses a folder containing raw rodent maze videos.
+7. Supported videos are listed with checkboxes.
+8. User adds selected videos to the backend queue.
+9. Each uploaded video appears as a reusable job card.
+10. User monitors queued, processing, completed, downloaded, expired, or failed jobs.
+11. User downloads completed ZIP outputs.
 
-The UI currently focuses on the **Process** tab. A future **Visualize** tab will allow users to inspect processed segment videos and spreadsheet outputs.
+The current version focuses on the **Process** tab. The **Visualize** tab is planned for reviewing processed segment videos and generated spreadsheet outputs.
 
 ---
 
@@ -38,20 +41,29 @@ The UI currently focuses on the **Process** tab. A future **Visualize** tab will
 Implemented:
 
 - PyQt6 desktop UI
+- Firebase email/password login
+- Firestore-backed user profile check
+- Admin-controlled access model
+- No public signup flow
+- First-login password change flow using Firestore `mustChangePassword`
+- Forgot password flow using Firebase reset email
 - Light/dark theme support
+- Theme icon using local image assets
+- Logout icon using local image asset
 - Folder-based video discovery
 - Checkbox-based video selection
-- Multi-video queue submission
-- Reusable job cards
-- Status polling
+- Add-to-queue behavior for multiple videos
+- Ability to add more videos while existing jobs are processing
+- Reusable job cards for each uploaded video
+- Status polling from backend
 - Backend upload integration
 - Result ZIP download
+- Default download location set to the user's Downloads folder
 - Download button states:
   - queued/expired: disabled muted button
   - processing: disabled warning button
   - completed: active green download button
   - downloaded: disabled button with green outline
-- Default download location set to the user's Downloads folder
 
 Backend expected:
 
@@ -70,19 +82,18 @@ Backend expected:
 
 Upcoming:
 
-- Authentication page before the main UI
-- AWS Cognito login/signup integration
-- JWT-based backend protection
-- User menu and logout support
-- Persistent user session
-- Better job history screen
+- Protect backend API with Firebase ID token verification
+- Send Firebase ID token with backend upload/status/download requests
+- User-specific job visibility on backend
 - Backend job cancellation endpoint
 - True cancel/stop support for already-submitted backend jobs
+- Better job history screen
 - Visualize tab for reviewing processed outputs
 - Packaged installers for macOS and Windows
-- Configurable backend URL
-- Error recovery for expired/downloaded jobs
+- Configurable backend URL from UI settings
 - Improved progress reporting from backend if available
+- Better error recovery for expired/downloaded jobs
+- Optional admin dashboard for managing users and password-change flags
 
 ---
 
@@ -92,13 +103,23 @@ Upcoming:
 RodentBehaviourAnalysis-UI/
 ├─ README.md
 ├─ requirements.txt
+├─ .env.example
 ├─ assets/
+│  ├─ moon.png
+│  ├─ sun.png
+│  └─ people-4.png
 └─ src/
    ├─ main.py
    ├─ api_client.py
    ├─ config.py
+   ├─ auth/
+   │  ├─ __init__.py
+   │  ├─ auth_state.py
+   │  ├─ firebase_auth.py
+   │  └─ firestore_user.py
    └─ ui/
       ├─ app_window.py
+      ├─ login_window.py
       ├─ theme.py
       ├─ main_window.py              # older prototype; can be removed later
       ├─ pages/
@@ -116,13 +137,16 @@ RodentBehaviourAnalysis-UI/
 ## Key Entry Points
 
 - `src/main.py`  
-  Starts the PyQt6 application.
+  Starts the PyQt6 app, validates environment config, opens the login screen first, and then opens the main app after successful authentication.
+
+- `src/ui/login_window.py`  
+  Login screen, password visibility toggle, Firebase sign-in, forgot password, and first-login password change UI.
 
 - `src/ui/app_window.py`  
-  Main application shell with top bar, tabs, and theme toggle.
+  Main app shell with top bar, theme toggle, logout button, and tabs.
 
 - `src/ui/pages/process_page.py`  
-  Main processing workflow: browse folder, select videos, add to queue, monitor jobs, download results.
+  Main processing workflow: browse folder, select videos, add to queue, monitor jobs, and download results.
 
 - `src/ui/components/job_card.py`  
   Reusable processing queue card for each uploaded video.
@@ -130,11 +154,20 @@ RodentBehaviourAnalysis-UI/
 - `src/ui/theme.py`  
   Centralized light/dark theme and shared stylesheet.
 
+- `src/auth/firebase_auth.py`  
+  Firebase Auth REST functions for login, password reset, and password update.
+
+- `src/auth/firestore_user.py`  
+  Firestore REST functions for reading/updating user profile flags.
+
+- `src/auth/auth_state.py`  
+  Stores the current authenticated user's token and identity data in memory.
+
 - `src/api_client.py`  
-  Handles HTTP communication with the backend API.
+  Handles HTTP communication with the RodentBehaviourAnalysis backend API.
 
 - `src/config.py`  
-  Stores backend URL and UI polling interval.
+  Loads environment variables and app-level config.
 
 ---
 
@@ -162,14 +195,123 @@ conda activate RBA-UI
 pip install -r requirements.txt
 ```
 
-Current dependencies:
+Current main dependencies:
 
 ```text
 PyQt6
 requests
+python-dotenv
 ```
 
-### 4) Confirm backend is running
+### 4) Create local environment file
+
+Copy the example environment file:
+
+```bash
+cp .env.example .env
+```
+
+Update `.env`:
+
+```env
+BACKEND_BASE_URL=http://127.0.0.1:8000
+FIREBASE_WEB_API_KEY=PASTE_YOUR_FIREBASE_WEB_API_KEY_HERE
+FIREBASE_PROJECT_ID=PASTE_YOUR_FIREBASE_PROJECT_ID_HERE
+```
+
+Never commit `.env`.
+
+---
+
+## Firebase Setup
+
+### 1) Create Firebase project
+
+Create a Firebase project from Firebase Console.
+
+### 2) Enable Authentication
+
+Go to:
+
+```text
+Build → Authentication → Sign-in method
+```
+
+Enable:
+
+```text
+Email/Password
+```
+
+Do not add signup to the UI. Users should be created by an administrator.
+
+### 3) Register a Web App
+
+In Firebase project settings, register a web app to access the Firebase web config.
+
+Copy the Web API key into `.env`:
+
+```env
+FIREBASE_WEB_API_KEY=your_key_here
+```
+
+### 4) Enable Firestore
+
+Go to:
+
+```text
+Build → Firestore Database
+```
+
+Create the database.
+
+### 5) Create user profile document
+
+For each Firebase Auth user, create a Firestore document:
+
+```text
+users/{Firebase_User_UID}
+```
+
+Required fields:
+
+```text
+email: string
+mustChangePassword: boolean
+```
+
+Example:
+
+```text
+email = user@example.com
+mustChangePassword = true
+```
+
+If `mustChangePassword` is true, the app asks the user to create a new password after login. After successful password update, the app sets this field to false.
+
+### 6) Firestore rules for current UI
+
+The UI directly reads and updates only the logged-in user's document.
+
+Recommended current rules:
+
+```js
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
+```
+
+Later, this can be moved behind the backend using Firebase Admin SDK.
+
+---
+
+## Backend Setup Requirement
 
 Before launching the UI, start the backend from the RodentBehaviourAnalysis backend repository:
 
@@ -177,7 +319,7 @@ Before launching the UI, start the backend from the RodentBehaviourAnalysis back
 ./start_backend.sh
 ```
 
-Then verify:
+Verify backend health:
 
 ```bash
 curl http://127.0.0.1:8000/health
@@ -189,7 +331,9 @@ Expected response:
 {"status":"ok","service":"rodent-ml-api-backend"}
 ```
 
-### 5) Run the UI
+---
+
+## Run the UI
 
 From the UI project root:
 
@@ -197,29 +341,67 @@ From the UI project root:
 python -m src.main
 ```
 
+The app opens the login screen first.
+
+---
+
+## Login Workflow
+
+### Normal login
+
+1. Enter email and password.
+2. App logs in through Firebase Authentication.
+3. App reads the user's Firestore profile.
+4. If `mustChangePassword` is false, the main app opens.
+
+### First-login password change
+
+If Firestore has:
+
+```text
+mustChangePassword = true
+```
+
+then after login:
+
+1. New password and confirm password fields appear.
+2. New password field turns green when it meets the minimum validation.
+3. Confirm password field turns green only when it exactly matches.
+4. App updates the password in Firebase Auth.
+5. App updates Firestore `mustChangePassword` to false.
+6. Main app opens.
+
+### Forgot password
+
+The login page includes a forgot-password action.
+
+Flow:
+
+1. User enters their email.
+2. User clicks forgot password.
+3. Firebase sends a reset email if the email exists.
+4. User changes password through Firebase's email reset flow.
+
 ---
 
 ## Configuration
 
-Open:
+Environment variables are loaded from `.env` through `python-dotenv`.
 
-```text
-src/config.py
+Required variables:
+
+```env
+BACKEND_BASE_URL=http://127.0.0.1:8000
+FIREBASE_WEB_API_KEY=your_firebase_web_api_key
+FIREBASE_PROJECT_ID=your_firebase_project_id
 ```
 
-Current values:
+App sizing and polling currently live in `src/config.py`:
 
 ```python
-BACKEND_BASE_URL = "http://127.0.0.1:8000"
 POLL_INTERVAL_MS = 3000
-```
-
-Change `BACKEND_BASE_URL` when pointing the UI to a hosted backend machine.
-
-Example:
-
-```python
-BACKEND_BASE_URL = "http://your-backend-ip:8000"
+APP_WIDTH = 1280
+APP_HEIGHT = 800
 ```
 
 ---
@@ -270,7 +452,7 @@ Add to Queue
 
 Selected videos are uploaded to the backend and submitted as jobs.
 
-The UI allows adding more videos to the queue even while existing jobs are processing. The backend queue processes them chronologically.
+The UI allows adding more videos to the queue even while existing jobs are processing. The backend queue processes jobs chronologically.
 
 ### 4) Monitor job cards
 
@@ -313,7 +495,7 @@ After download, the backend deletes the ZIP and marks the job as downloaded.
 
 ## Backend Interaction
 
-The UI uses these backend API calls:
+The UI currently uses these backend API calls:
 
 ### Health check
 
@@ -375,6 +557,7 @@ Background: #F7F8FA
 Surface:    #FFFFFF
 Text:       #111827
 Accent:     #B7F000
+Orange:     #FE5E00
 ```
 
 Dark theme:
@@ -386,6 +569,14 @@ Text:       #F9FAFB
 Accent:     #B7F000
 ```
 
+Theme assets:
+
+```text
+assets/moon.png
+assets/sun.png
+assets/people-4.png
+```
+
 ---
 
 ## Development Notes
@@ -393,7 +584,9 @@ Accent:     #B7F000
 ### Remove generated cache files
 
 ```bash
-find src -type d -name "__pycache__" -prune -exec rm -rf {} +
+find . -type d -name "__pycache__" -prune -exec rm -rf {} +
+find . -type f -name "*.pyc" -delete
+find . -type f -name ".DS_Store" -delete
 ```
 
 ### Recommended `.gitignore`
@@ -403,6 +596,7 @@ __pycache__/
 *.pyc
 .env
 .DS_Store
+.idea/
 dist/
 build/
 *.spec
@@ -422,9 +616,10 @@ python -m src.main
 - Jobs already submitted to the backend may continue processing.
 - True backend cancellation requires a backend cancel endpoint.
 - Progress bars are currently status-based, not real percentage progress from the ML pipeline.
-- Authentication is not implemented yet.
+- Backend API is not yet protected by Firebase ID token verification.
+- Firestore user profile is currently accessed directly from the UI.
 - Visualize tab is currently planned but not complete.
-- Backend URL is currently configured manually in `src/config.py`.
+- Packaged installers are not yet created.
 
 ---
 
@@ -435,7 +630,9 @@ Planned production flow:
 ```text
 Login Page
    ↓
-AWS Cognito Auth
+Firebase Auth
+   ↓
+Firestore user profile / backend user profile
    ↓
 Main App Shell
    ↓
@@ -448,14 +645,16 @@ Redis Queue + ML Worker
 Download Processed Results
 ```
 
-Auth goals:
+Security goals:
 
-- AWS Cognito user pool
-- Signup/login
-- JWT token storage
-- Token attached to backend requests
-- Backend JWT verification
-- User-specific job visibility
+- Firebase Auth login
+- Firestore-backed profile flags
+- No public signup
+- Admin-created users only
+- Firebase ID token attached to backend requests
+- Backend verifies Firebase ID token
+- User-specific job records
+- Backend-owned Firestore/Admin SDK access
 
 ---
 
@@ -468,7 +667,7 @@ git commit -m "Describe your change"
 git push
 ```
 
-Before committing, make sure generated files are not staged:
+Before committing, make sure generated/private files are not staged:
 
 ```bash
 git status
@@ -477,15 +676,16 @@ git status
 Do not commit:
 
 ```text
+.env
 __pycache__/
 *.pyc
 local downloaded ZIP files
 build artifacts
-.env
+.idea/
 ```
 
 ---
 
 ## Summary
 
-This UI project is the user-facing desktop client for the RodentBehaviourAnalysis backend. The current version supports the full process workflow: select videos, submit to backend queue, monitor job status, and download processed results. The next major milestones are authentication, backend protection, packaging, and visualization.
+This UI project is the user-facing desktop client for the RodentBehaviourAnalysis backend. The current version supports Firebase-authenticated access, first-login password change, folder-based video selection, backend queue submission, job monitoring, and result downloads. The next major milestones are backend token protection, job cancellation, visualization, packaging, and production deployment.
