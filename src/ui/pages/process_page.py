@@ -28,13 +28,14 @@ class UploadWorker(QThread):
     success = pyqtSignal(dict)
     error = pyqtSignal(str)
 
-    def __init__(self, video_path: str):
+    def __init__(self, video_path: str, id_token: str):
         super().__init__()
         self.video_path = video_path
+        self.id_token = id_token
 
     def run(self):
         try:
-            self.success.emit(upload_video(self.video_path))
+            self.success.emit(upload_video(self.video_path, self.id_token))
         except Exception as e:
             self.error.emit(str(e))
 
@@ -43,22 +44,25 @@ class DownloadWorker(QThread):
     success = pyqtSignal(str)
     error = pyqtSignal(str)
 
-    def __init__(self, job_id: str, save_path: str):
+    def __init__(self, job_id: str, save_path: str, id_token: str):
         super().__init__()
         self.job_id = job_id
         self.save_path = save_path
+        self.id_token = id_token
 
     def run(self):
         try:
-            download_result(self.job_id, self.save_path)
+            download_result(self.job_id, self.save_path, self.id_token)
             self.success.emit(self.save_path)
         except Exception as e:
             self.error.emit(str(e))
 
 
 class ProcessPage(QWidget):
-    def __init__(self, theme: dict):
+    def __init__(self, theme: dict, auth_state):
         super().__init__()
+
+        self.auth_state = auth_state
         self.theme = theme
 
         self.folder_path: Path | None = None
@@ -264,7 +268,10 @@ class ProcessPage(QWidget):
         self.queue_label.setText(f"Uploading: {next_video.name}")
         self.log(f"Uploading: {next_video.name}")
 
-        self.active_upload_worker = UploadWorker(str(next_video))
+        self.active_upload_worker = UploadWorker(
+            str(next_video),
+            self.auth_state.id_token,
+        )
         self.active_upload_worker.success.connect(self.on_upload_success)
         self.active_upload_worker.error.connect(self.on_upload_error)
         self.active_upload_worker.start()
@@ -322,7 +329,7 @@ class ProcessPage(QWidget):
 
         for job_id, job_info in list(self.jobs.items()):
             try:
-                job = get_job_status(job_id)
+                job = get_job_status(job_id, self.auth_state.id_token)
                 status = job.get("status")
                 video_name = job.get("original_video_name", job_info["video_name"])
 
@@ -376,7 +383,11 @@ class ProcessPage(QWidget):
 
         self.log(f"Downloading {video_name} to {save_path}")
 
-        self.download_worker = DownloadWorker(job_id, save_path)
+        self.download_worker = DownloadWorker(
+            job_id,
+            save_path,
+            self.auth_state.id_token,
+        )
         self.download_worker.success.connect(lambda path: self.on_download_success(job_id, path))
         self.download_worker.error.connect(self.on_download_error)
         self.download_worker.start()

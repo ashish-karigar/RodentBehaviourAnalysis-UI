@@ -38,7 +38,7 @@ def main():
         login_window.show()
 
     def show_app():
-        app_window = AppWindow()
+        app_window = AppWindow(auth_state)
         windows["app"] = app_window
 
         def on_logout():

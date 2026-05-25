@@ -23,13 +23,15 @@ ASSETS_DIR = PROJECT_ROOT / "assets"
 
 MOON_ICON = ASSETS_DIR / "moon.png"
 SUN_ICON = ASSETS_DIR / "sun.png"
-LOGOUT_ICON = ASSETS_DIR / "people-4.png"
+LOGOUT_ICON = ASSETS_DIR / "people-3.png"
 
 
 class AppWindow(QMainWindow):
     logout_requested = pyqtSignal()
-    def __init__(self):
+    def __init__(self, auth_state):
         super().__init__()
+
+        self.auth_state = auth_state
 
         self.setWindowTitle("Rodent Behaviour Analysis")
         self.resize(APP_WIDTH, APP_HEIGHT)
@@ -80,7 +82,7 @@ class AppWindow(QMainWindow):
         top_bar.addWidget(self.logout_btn)
 
         self.tabs = QTabWidget()
-        self.process_page = ProcessPage(self.theme)
+        self.process_page = ProcessPage(self.theme, self.auth_state)
         self.visualize_page = VisualizePage(self.theme)
 
         self.tabs.addTab(self.process_page, "Process")

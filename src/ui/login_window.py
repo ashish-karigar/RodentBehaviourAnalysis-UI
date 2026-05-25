@@ -6,12 +6,10 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QVBoxLayout,
     QWidget,
-    QMessageBox,
     QHBoxLayout,
 )
 from src.auth.firestore_user import (
     get_user_profile,
-    set_must_change_password,
     FirestoreUserError,
 )
 from src.config import APP_WIDTH, APP_HEIGHT
@@ -22,6 +20,8 @@ from src.auth.firebase_auth import (
     update_password,
     FirebaseAuthError,
 )
+
+from src.api_client import mark_password_change_complete
 
 class LoginWindow(QWidget):
     login_success = pyqtSignal(dict)
@@ -346,11 +346,7 @@ class LoginWindow(QWidget):
                 new_password,
             )
 
-            set_must_change_password(
-                local_id=updated_auth["local_id"],
-                id_token=updated_auth["id_token"],
-                value=False,
-            )
+            mark_password_change_complete(updated_auth["id_token"])
 
             self.set_error("Password updated successfully.", success=True)
             self.login_success.emit(updated_auth)
