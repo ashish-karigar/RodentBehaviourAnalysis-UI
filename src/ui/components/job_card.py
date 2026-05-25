@@ -10,11 +10,12 @@ from PyQt6.QtWidgets import (
 
 
 class JobCard(QFrame):
-    def __init__(self, index: int, job_id: str, video_name: str, status: str, on_download):
+    def __init__(self, index: int, job_id: str, video_name: str, status: str, on_download, theme: dict):
         super().__init__()
 
         self.index = index
         self.job_id = job_id
+        self.theme = theme
         self.video_name = video_name
         self.status = status
         self.on_download = on_download
@@ -34,11 +35,14 @@ class JobCard(QFrame):
         self.number_label = QLabel(f"{self.index:02d}")
         self.number_label.setFixedWidth(52)
         self.number_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        number_color = "#B7F000" if self.theme["bg"] == "#0F172A" else "#FE5E00"
+
         self.number_label.setStyleSheet(
-            """
+            f"""
             font-family: Monaco, Menlo, Consolas, monospace;
-            font-size: 30px;
+            font-size: 34px;
             font-weight: 900;
+            color: {number_color};
             """
         )
 

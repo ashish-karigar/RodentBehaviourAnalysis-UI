@@ -307,6 +307,7 @@ class ProcessPage(QWidget):
             video_name=video_name,
             status=status,
             on_download=self.download_job_by_id,
+            theme=self.theme,
         )
 
         self.cards_layout.insertWidget(self.cards_layout.count() - 1, card)

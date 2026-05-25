@@ -4,7 +4,7 @@ LIGHT_THEME = {
     "surface_alt": "#F1F5F9",
     "text": "#111827",
     "muted": "#6B7280",
-    "border": "#E5E7EB",
+    "border": "#FE5E00",
     "accent": "#B7F000",
     "accent_text": "#111827",
     "success": "#22C55E",
@@ -59,9 +59,9 @@ def app_stylesheet(theme: dict) -> str:
         color: {theme["text"]};
     }}
     
-        QListWidget {{
+    QListWidget {{
         background: {theme["surface"]};
-        border: 1px solid {theme["border"]};
+        border: 1px solid rgba(148, 163, 184, 0.28);
         border-radius: 12px;
         padding: 6px;
         color: {theme["text"]};
@@ -69,7 +69,7 @@ def app_stylesheet(theme: dict) -> str:
 
     QListWidget::item {{
         padding: 12px;
-        border-bottom: 1px solid {theme["border"]};
+        border-bottom: 1px solid rgba(148, 163, 184, 0.18);
     }}
 
     QListWidget::item:selected {{
@@ -134,7 +134,7 @@ def app_stylesheet(theme: dict) -> str:
         font-weight: bold;
     }}
     
-        QScrollArea {{
+    QScrollArea {{
         background: transparent;
         border: none;
     }}
