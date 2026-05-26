@@ -167,6 +167,8 @@ class ProcessPage(QWidget):
         self.cards_scroll = QScrollArea()
         self.cards_scroll.setWidgetResizable(True)
         self.cards_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.cards_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.cards_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.cards_scroll.setWidget(self.cards_container)
 
         right_layout.addWidget(right_title)
